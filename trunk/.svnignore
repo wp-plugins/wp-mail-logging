@@ -1,0 +1,5 @@
+bin
+tests
+.travis.yml
+phpunit.xml
+README.md
