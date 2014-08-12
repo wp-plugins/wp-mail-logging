@@ -20,9 +20,14 @@
 */
 
 function WPML_init($file) {
-
+	
     require_once('WPML_Plugin.php');
     $aPlugin = new WPML_Plugin();
+    
+    // For Testing make plugin available global
+    if( ! array_key_exists( 'WPML_Plugin', $GLOBALS ) ) { 
+    	$GLOBALS['WPML_Plugin'] = &$aPlugin;
+    }
 
     // Install the plugin
     // NOTE: this file gets run each time you *activate* the plugin.
@@ -50,9 +55,4 @@ function WPML_init($file) {
 
     // Register the Plugin Deactivation Hook
     register_deactivation_hook($file, array(&$aPlugin, 'deactivate'));
-}
-
-function _get_tablename( $name ) {
-	global $wpdb;
-	return $wpdb->prefix . 'wpml_' . $name;
 }

@@ -6,7 +6,7 @@ License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 Requires at least: 3.0
 Tested up to: 3.9.1
-Stable tag: 1.1
+Stable tag: 1.2
 
 Logs each email sent by WordPress.
 
@@ -14,10 +14,13 @@ Logs each email sent by WordPress.
 
 Logs each email sent by WordPress. This can be useful if you don't want to lose such mail contents. It can also be useful for debugging purposes while development.
 
+[youtube http://www.youtube.com/watch?v=zU858JxhczA]
+
 Features of the plugin include:
 
 * Zero-configuration - just install and enjoy
 * Complete list of sent mails
+* Developer: Filters are provided to extend the columns. *
 
 **Follow this plugin on [GitHub](https://github.com/No3x/wp-mail-logging)**
 
@@ -38,6 +41,11 @@ Just install and activate wp-mail-logging. The plugin will do the work for you! 
 
 
 == Changelog ==
+= 1.2, August 12, 2014  =
+- Fixed deletion of mails regardless of options (on update to 1.2 your mails will be deleted hopefully this happens for the last time)
+- Improved help & stability
+- Added video
+
 = 1.1 =
 - Modified readme. 
 

@@ -8,6 +8,12 @@ class WPML_Plugin extends WPML_LifeCycle {
 	const HOOK_LOGGING_COLUMNS = 'wpml_hook_mail_columns';
 	const HOOK_LOGGING_COLUMNS_RENDER = 'wpml_hook_mail_columns_render';
 	
+
+	public static function getTablename( $name ) {
+		global $wpdb;
+		return $wpdb->prefix . 'wpml_' . $name;
+	}
+	
     /**
      * See: http://plugin.michael-simpson.com/?page_id=31
      * @return array of option meta data.
@@ -57,11 +63,11 @@ class WPML_Plugin extends WPML_LifeCycle {
      */
     protected function installDatabaseTables() {
 		global $wpdb;
-		$tableName = _get_tablename('mails');
+		$tableName = WPML_Plugin::getTablename('mails');
 		$wpdb->query("CREATE TABLE IF NOT EXISTS `$tableName` (
 				`mail_id` INT NOT NULL AUTO_INCREMENT,
 				`timestamp` TIMESTAMP NOT NULL,
-				`to` VARCHAR(200) NOT NULL DEFAULT '0',
+				`receiver` VARCHAR(200) NOT NULL DEFAULT '0',
 				`subject` VARCHAR(200) NOT NULL DEFAULT '0',
 				`message` TEXT NULL,
 				`headers` TEXT NULL,
@@ -79,7 +85,7 @@ class WPML_Plugin extends WPML_LifeCycle {
      */
     protected function unInstallDatabaseTables() {
 		global $wpdb;
-		$tableName = _get_tablename('mails');
+		$tableName = WPML_Plugin::getTablename('mails');
 		$wpdb->query("DROP TABLE IF EXISTS `$tableName`");
     }
 
@@ -90,22 +96,23 @@ class WPML_Plugin extends WPML_LifeCycle {
      * @return void
      */
     public function upgrade() {
-//     	global $wpdb;
-//     	$upgradeOk = true;
-//     	$savedVersion = $this->getVersionSaved();
+    	global $wpdb;
+    	$upgradeOk = true;
+    	$savedVersion = $this->getVersionSaved();
     	
-//     	if ($this->isVersionLessThan($savedVersion, '1.0')) {
-//     		if ($this->isVersionLessThan($savedVersion, '0.2')) {
-//     			$tableName = $this->prefixTableName('mail_logging');
-//     			$wpdb->query("ALTER TABLE `$tableName` ADD COLUMN ( `plugin_version` VARCHAR(200) NOT NULL DEFAULT '0')");
-//     		}
-//     	}
+    	if ($this->isVersionLessThan($savedVersion, '2.0')) {
+    		if ($this->isVersionLessThan($savedVersion, '1.2')) {
+    			$tableName = $this->prefixTableName('mail_logging');
+    			$wpdb->query("ALTER TABLE `$tableName` ADD COLUMN ( `plugin_version` VARCHAR(200) NOT NULL DEFAULT '0')");
+    			$wpdb->query("ALTER TABLE `$tableName` CHANGE `to` `receiver` VARCHAR(200)");
+    		}
+    	}
     
-//     	// Post-upgrade, set the current version in the options
-//     	$codeVersion = $this->getVersion();
-//     	if ($upgradeOk && $savedVersion != $codeVersion) {
-//     		$this->saveInstalledVersion();
-//     	}
+    	// Post-upgrade, set the current version in the options
+    	$codeVersion = $this->getVersion();
+    	if ($upgradeOk && $savedVersion != $codeVersion) {
+    		$this->saveInstalledVersion();
+    	}
     }
 
     public function addActionsAndFilters() {
@@ -142,36 +149,38 @@ class WPML_Plugin extends WPML_LifeCycle {
         // http://plugin.michael-simpson.com/?page_id=41
 
     }
-
+    
+    private function extractReceiver( $receiver ) {
+    	return is_array( $receiver ) ? implode( ',\n', $receiver ) : $receiver;
+    }
+    
+    private function extractHeader( $headers ) {
+    	return is_array( $headers ) ? implode( ',\n', $headers ) : $headers;
+    }
+    
+    private function extractHasAttachments( $attachments ) {
+    	return ( count ( $attachments ) > 0 ) ? 'true' : 'false';
+    }
+    
+    private function extractFields( $mail ) {
+    	return array(
+    		'receiver'			=> $this->extractReceiver( $mail['to'] ),
+    		'subject'			=> $mail['subject'],
+    		'message'			=> $mail['message'],
+    		'headers'			=> $this->extractHeader( $mail['headers'] ),
+    		'attachments'	=> $this->extractHasAttachments( $mail['attachments'] )
+    	);
+    }
+    
     public function log_email( $mailOriginal ) {
+    	// make copy to avoid any changes on the original mail
     	$mail = $mailOriginal;
     	global $wpdb;
-    	/*
-    	[to] => to@example.com
-	    [subject] => Test Mail
-	    [message] => Test Mail
-	
-	    [headers] => 
-	    [attachments] => Array
-	        (
-	        )
-	    */
-    	$to = is_array($mail["to"]) ? implode(",\n", $mail['to']) : $mail['to'];
-    	$subject = $mail["subject"];
-    	$message = $mail["message"];
-    	$headers = is_array($mail["headers"]) ? implode(",\n", $mail['headers']) : $mail['headers'];
-    	$hasAttachments = (count ($mail['attachments']) > 0) ? "true" : "false";
     	
-    	$tableName = _get_tablename('mails');
-    	$wpdb->insert($tableName, array(
-    		'to' => $to,
-    		'timestamp' => current_time('mysql'),
-    		'subject' => $subject,
-    		'message' => $message,
-    		'headers' => $headers,
-    		'attachments' => $hasAttachments,
-    		'plugin_version' => $this->getVersion()
-    	));
+    	$fields = $this->extractFields( $mail );
+    	
+    	$tableName = WPML_Plugin::getTablename('mails');
+    	$wpdb->insert($tableName, $fields);
     	
     	return $mailOriginal;
     }
