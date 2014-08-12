@@ -4,3 +4,4 @@ tests
 .travis.yml
 phpunit.xml
 README.md
+CONTRIBUTING.md
