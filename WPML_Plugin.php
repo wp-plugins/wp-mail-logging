@@ -71,7 +71,7 @@ class WPML_Plugin extends WPML_LifeCycle {
 				`subject` VARCHAR(200) NOT NULL DEFAULT '0',
 				`message` TEXT NULL,
 				`headers` TEXT NULL,
-				`attachments` TINYINT(1) NOT NULL DEFAULT '0',
+				`attachments` VARCHAR(800) NOT NULL DEFAULT '0',
 				`plugin_version` VARCHAR(200) NOT NULL DEFAULT '0',
 				PRIMARY KEY (`mail_id`) 
             );");	
@@ -99,15 +99,24 @@ class WPML_Plugin extends WPML_LifeCycle {
     	global $wpdb;
     	$upgradeOk = true;
     	$savedVersion = $this->getVersionSaved();
+    	$tableName = $this->getTablename('mails');
     	
     	if ($this->isVersionLessThan($savedVersion, '2.0')) {
     		if ($this->isVersionLessThan($savedVersion, '1.2')) {
-    			$tableName = $this->prefixTableName('mail_logging');
-    			$wpdb->query("ALTER TABLE `$tableName` ADD COLUMN ( `plugin_version` VARCHAR(200) NOT NULL DEFAULT '0')");
-    			$wpdb->query("ALTER TABLE `$tableName` CHANGE `to` `receiver` VARCHAR(200)");
+    			$wpdb->query("ALTER TABLE `$tableName` CHANGE COLUMN `to` `receiver` VARCHAR(200)");
+    		}
+    		if ($this->isVersionLessThan($savedVersion, '1.3')) {
+    			$wpdb->query("ALTER TABLE `$tableName` MODIFY COLUMN `attachments` VARCHAR(800) NOT NULL DEFAULT '0'");
     		}
     	}
-    
+    	
+    	if( !empty( $wpdb->last_error ) ) {
+    		$upgradeOk = false;
+    		if( is_admin() ) {
+    			echo "There was at least one error while upgrading the database schema. Please report the following error: {$wpdb->last_error}";
+    		}
+    	}
+    	
     	// Post-upgrade, set the current version in the options
     	$codeVersion = $this->getVersion();
     	if ($upgradeOk && $savedVersion != $codeVersion) {
@@ -119,7 +128,7 @@ class WPML_Plugin extends WPML_LifeCycle {
 		
         // Add options administration page
         // http://plugin.michael-simpson.com/?page_id=47
-        add_action('admin_menu', array(&$this, 'createSettingsMenu'));
+        add_action( 'admin_menu', array(&$this, 'createSettingsMenu') );
 
         // Example adding a script & style just for the options administration page
         // http://plugin.michael-simpson.com/?page_id=47
@@ -132,8 +141,9 @@ class WPML_Plugin extends WPML_LifeCycle {
         // Add Actions & Filters
         // http://plugin.michael-simpson.com/?page_id=37
 		
-         add_filter( 'wp_mail', array(&$this, 'log_email' ) );
-			
+         add_filter( 'wp_mail', array( &$this, 'log_email' ) );
+         add_filter( 'set-screen-option', array( &$this, 'save_screen_options' ), 10, 3);
+
         // Adding scripts & styles to all pages
         // Examples:
         //        wp_enqueue_script('jquery');
@@ -158,8 +168,17 @@ class WPML_Plugin extends WPML_LifeCycle {
     	return is_array( $headers ) ? implode( ',\n', $headers ) : $headers;
     }
     
-    private function extractHasAttachments( $attachments ) {
-    	return ( count ( $attachments ) > 0 ) ? 'true' : 'false';
+    private function extractAttachments( $attachments ) {
+    	$attachments = is_array( $attachments ) ? $attachments : array( $attachments );
+    	$attachment_urls = array();
+    	$uploads = wp_upload_dir();
+    	$basename = basename( $uploads['baseurl'] );
+    	$basename_needle = '/'.$basename.'/';
+    	foreach( $attachments as $attachment ) {
+    		$append_url = substr( $attachment, strrpos( $attachment, $basename_needle ) );
+    		$attachment_urls[] = $append_url;
+    	}
+    	return implode( ',\n', $attachment_urls );
     }
     
     private function extractFields( $mail ) {
@@ -168,7 +187,8 @@ class WPML_Plugin extends WPML_LifeCycle {
     		'subject'			=> $mail['subject'],
     		'message'			=> $mail['message'],
     		'headers'			=> $this->extractHeader( $mail['headers'] ),
-    		'attachments'	=> $this->extractHasAttachments( $mail['attachments'] )
+    		'attachments'		=> $this->extractAttachments( $mail['attachments'] ),
+    		'plugin_version'	=> $this->getVersionSaved()
     	);
     }
     
