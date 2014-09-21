@@ -1,12 +1,12 @@
 === WP Mail Logging ===
 Contributors: No3x, tripflex
 Donate link: http://no3x.de/web/donate
-Tags: mail, email, log, logging, list, store, collect, view
+Tags: mail, email, log, logging, debug, list, store, collect, view
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 Requires at least: 3.0
 Tested up to: 4.0
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 
 Logs each email sent by WordPress.
 
@@ -37,12 +37,14 @@ Just install and activate wp-mail-logging. The plugin will do the work for you! 
 
 == Screenshots ==
 1. The List
-
 2. The Detail View
 3. The Settings
 
 
 == Changelog ==
+= 1.3.2, September 21, 2014  =
+- Fixed HTML mails broken in previous version.
+
 = 1.3.1, September 12, 2014  =
 - Fixed angle brackets notation support (e.g. John Doe <john.doe@example.org>).
 
