@@ -14,37 +14,6 @@ class WPML_Plugin extends WPML_LifeCycle {
 		return $wpdb->prefix . 'wpml_' . $name;
 	}
 	
-    /**
-     * See: http://plugin.michael-simpson.com/?page_id=31
-     * @return array of option meta data.
-     */
-    public function getOptionMetaData() {
-        //  http://plugin.michael-simpson.com/?page_id=31
-        return array(
-            //'_version' => array('Installed Version'), // Leave this one commented-out. Uncomment to test upgrades.
-            //'ATextInput' => array(__('Enter in some text', 'wml')),
-            'DeleteOnDeactivation' => array(__('Delete all data on deactivation? (emails and settings)', 'wml'), 'false', 'true'),
-            'CanSeeSubmitData' => array(__('Can See Submission data', 'wml'),
-                                        'Administrator', 'Editor', 'Author', 'Contributor', 'Subscriber', 'Anyone')
-        );
-    }
-
-//    protected function getOptionValueI18nString($optionValue) {
-//        $i18nValue = parent::getOptionValueI18nString($optionValue);
-//        return $i18nValue;
-//    }
-
-    protected function initOptions() {
-        $options = $this->getOptionMetaData();
-        if (!empty($options)) {
-            foreach ($options as $key => $arr) {
-                if (is_array($arr) && count($arr > 1)) {
-                    $this->addOption($key, $arr[1]);
-                }
-            }
-        }
-    }
-
     public function getPluginDisplayName() {
         return 'WP Mail Logging';
     }
@@ -74,7 +43,7 @@ class WPML_Plugin extends WPML_LifeCycle {
 				`attachments` VARCHAR(800) NOT NULL DEFAULT '0',
 				`plugin_version` VARCHAR(200) NOT NULL DEFAULT '0',
 				PRIMARY KEY (`mail_id`) 
-            );");	
+            ) DEFAULT CHARACTER SET = utf8 DEFAULT COLLATE utf8_general_ci;");	
     }
     
 
@@ -108,6 +77,9 @@ class WPML_Plugin extends WPML_LifeCycle {
     		if ($this->isVersionLessThan($savedVersion, '1.3')) {
     			$wpdb->query("ALTER TABLE `$tableName` MODIFY COLUMN `attachments` VARCHAR(800) NOT NULL DEFAULT '0'");
     		}
+    		if ($this->isVersionLessThan($savedVersion, '1.4')) {
+    			$wpdb->query("ALTER TABLE `$tableName` CHARACTER SET utf8 COLLATE utf8_general_ci;");
+    		}
     	}
     	
     	if( !empty( $wpdb->last_error ) ) {
@@ -128,7 +100,7 @@ class WPML_Plugin extends WPML_LifeCycle {
 		
         // Add options administration page
         // http://plugin.michael-simpson.com/?page_id=47
-        add_action( 'admin_menu', array(&$this, 'createSettingsMenu') );
+        add_action( 'admin_menu', array(&$this, 'createSettingsMenu'), 9 );
 
         // Example adding a script & style just for the options administration page
         // http://plugin.michael-simpson.com/?page_id=47
@@ -181,11 +153,23 @@ class WPML_Plugin extends WPML_LifeCycle {
     	return implode( ',\n', $attachment_urls );
     }
     
+    private function extractMessage( $mail ) {
+    	if( isset($mail['message']) ) {
+    		// usally the message is stored in the message field
+    		return $mail['message'];
+    	} elseif( isset($mail['html']) ) {
+    		// for example Mandrill stores the message in the 'html' field (see gh-22)
+    		return $mail['html'];
+    	}
+    	return "";
+    }
+    
+    
     private function extractFields( $mail ) {
     	return array(
     		'receiver'			=> $this->extractReceiver( $mail['to'] ),
     		'subject'			=> $mail['subject'],
-    		'message'			=> $mail['message'],
+    		'message'			=> $this->extractMessage( $mail ),
     		'headers'			=> $this->extractHeader( $mail['headers'] ),
     		'attachments'		=> $this->extractAttachments( $mail['attachments'] ),
     		'plugin_version'	=> $this->getVersionSaved()
