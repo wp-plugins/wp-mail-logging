@@ -1,14 +1,18 @@
 .redux-main {
-    .button.remove-image {
+    .button.remove-image,
+    .removeCSS {
         margin-left: 10px;
         color: #ef521d;
+
         &:hover {
             color: red;
         }
     }
+
     .upload_button_div {
         margin-bottom: 5px;
     }
+
     .upload-error {
         float: left;
         color: #666;
@@ -23,6 +27,7 @@
         -moz-border-radius: 4px;
         border-radius: 4px;
     }
+
     .reset-button {
         font-family: Arial, Verdana, sans-serif;
         float: left;
@@ -30,10 +35,12 @@
         color: #ef521d;
         border-color: #bbb;
     }
+
     .redux-option-image {
         max-height: 340px;
         max-width: 340px;
         padding: 5px;
+        margin-bottom: 0;
         margin-top: 10px;
         margin-right: 15px;
         border: 1px solid #e3e3e3;
@@ -43,10 +50,12 @@
         -webkit-border-radius: 3px;
         border-radius: 3px;
     }
+
     .redux-main .upload {
         width: 80% !important;
     }
-    .screenshot {
-        margin-bottom: 10px;
+
+    .button {
+        margin-top: 2px;
     }
 }
